@@ -1,17 +1,17 @@
 import pygame as pg
 pg.init()
+pg.display.set_caption("MyGame")
 
 W, H = 1000, 600
 screen = pg.display.set_mode((W, H))
+
 clock = pg.time.Clock()
-pg.display.set_caption("MyGame")
 
-with open("level1.txt", "r", encoding="utf-8") as f:
-    level = f.read()
-    level = level.split("\n")
 background_images = [pg.transform.scale(pg.image.load(rf"image\oak_woods_v1.0\background\background_layer_{i}.png"), (W, H)).convert_alpha() for i in range(1, 4)]
+location = 'menu'
 
 
+# class
 class GameSprite(pg.sprite.Sprite):
     def __init__(self, image:str, x:int, y:int, w:int, h:int) -> None:
         super().__init__()
@@ -134,7 +134,6 @@ class Platform(pg.sprite.Sprite):
             self.image = pg.Surface((PLATFORM_WIDTH, PLATFORM_HEIGHT))  
             self.image.fill(pg.Color(COLOR))
             self.rect = pg.Rect(x, y, PLATFORM_WIDTH, PLATFORM_HEIGHT)
-
 # Camera
 class Camera(object):
     def __init__(self, camera_func, width, height):
@@ -147,6 +146,7 @@ class Camera(object):
     def update(self, target):
         self.state = self.camera_func(self.state, target.rect)
 def camera_configure(camera, target_rect):
+
     l, t, _, _ = target_rect
     _, _, w, h = camera
     l, t = -l+W / 2, -t+H / 2
@@ -157,17 +157,26 @@ def camera_configure(camera, target_rect):
     t = min(0, t)                  # Не движемся дальше верхней границы
 
     return pg.Rect(l, t, w, h)  
+with open("level1.txt", "r", encoding="utf-8") as f:
+    level = f.read()
+    level = level.split("\n")
 total_level_w = len(level[0])*30
 total_level_h = len(level)*30
 
-camera = Camera(camera_configure, total_level_w, total_level_h)
-
 sprites = pg.sprite.Group()
+camera = Camera(camera_configure, total_level_w, total_level_h)
 player = Player('hero/1.png', 90, 120, 25, 50)
+platforms = []
 sprites.add(player)
 
+# menu image
+image_menu = pg.transform.scale(pg.image.load("image/menu.png"), (800, 500))
+image_button_play = pg.transform.scale(pg.image.load("image/menu_play.jpg"), (100, 50))
+image_button_settings = pg.transform.scale(pg.image.load("image/menu_settings.jpg"), (100, 50))
+image_button_exit = pg.transform.scale(pg.image.load("image/menu_exit.jpg"), (100, 50))
 
-platforms = []
+
+# level
 PLATFORM_WIDTH = PLATFORM_HEIGHT = 30
 x=y=0 # координаты
 for row in level: # вся строка
@@ -193,6 +202,22 @@ for row in level: # вся строка
             pf = Platform(x, y, "asdasd", "image/ground/block_left.png")        
             sprites.add(pf)
             platforms.append(pf)    
+        if col == 'g':
+            pf = Platform(x, y, "asdas", "image\ground\ground.png")
+            sprites.add(pf)
+            platforms.append(pf)
+        if col == '4':
+            pf = Platform(x, y, "asdas", "image/ground/block_down_up_left.png")
+            sprites.add(pf)
+            platforms.append(pf)
+        if col == '5':
+            pf = Platform(x, y, "asdas", "image/ground/block_up_down_right.png")
+            sprites.add(pf)
+            platforms.append(pf)
+        if col == '6':
+            pf = Platform(x, y, "asdas", "image/ground/block_down.png")
+            sprites.add(pf)
+            platforms.append(pf)
         x += PLATFORM_WIDTH #блоки платформы ставятся на ширине блоков
     y += PLATFORM_HEIGHT    #то же самое и с высотой
     x = 0                   #на каждой новой строчке начинаем с нуля
@@ -209,11 +234,19 @@ while True:
     for i in background_images:
         screen.blit(i, (0, 0))
     
-    player.update(platforms)
-    camera.update(player)
-    # draw sprites
-    for e in sprites:
-        screen.blit(e.image, camera.apply(e))
+    if location == 'menu':
+        for i in background_images:
+            screen.blit(i, (0, 0))
+        screen.blit(image_menu, (W//2-400, H//2-300))
+        screen.blit(image_button_play, (W//2-50, 165))
+        screen.blit(image_button_settings, (W//2-50, 235))
+        screen.blit(image_button_exit, (W//2-50, 305))
+    if location == 'game':
+        player.update(platforms)
+        camera.update(player)
+        # draw sprites
+        for e in sprites:
+            screen.blit(e.image, camera.apply(e))
 
     pg.display.update()
     clock.tick(60)
