@@ -44,53 +44,83 @@ class Player(GameSprite):
 
         # Animations, image
         self.frame_animation = 0
+        self.attack_frame = 0
+        self.attack_time_out = 0
+        self.bool_attack = False # Now attack?
         
-        # типо стоять, я хз как на инглишь бцдет стоять
+        # типо стоять, я хз как на инглишь будет стоять
         self.stating_image_right = self.image
         self.stating_image_left = pg.transform.flip(self.stating_image_right, True, False)
         
         self.run_images_right = [pg.transform.scale(pg.image.load(fr"image\hero\run_{i}.png"), (w, h)) for i in range(1, 8)]
+        
         self.run_images_left = [pg.transform.flip(i, True, False) for i in self.run_images_right]
+        
+        self.attack_images_right = [pg.transform.scale(pg.image.load(fr"image\hero\attack_{i}.png"), (w, h)) for i in range(1, 3)]
+        self.attack_images_right.append(pg.transform.scale(pg.image.load(r"image\hero\attack_3.png"), (40, h)))
+        self.attack_images_right.append(pg.transform.scale(pg.image.load(r"image\hero\attack_4.png"), (40, h)))
+        self.attack_images_right.append(pg.transform.scale(pg.image.load(r"image\hero\attack_5.png"), (25, h)))
+        
+        self.attack_images_left = [pg.transform.flip(i, True, False) for i in self.attack_images_right]
         
     def update(self, platforms, HP=False):
         keys = pg.key.get_pressed()
         # left and right
         if keys[pg.K_RIGHT] or keys[pg.K_d]: # RIGHT
             self.xvel = self.MOVE_SPEED
-            if self.frame_animation % 3 == 0:
+            if self.frame_animation % 4 == 0:
                 self.image = self.run_images_right[0]
-            if self.frame_animation % 5 == 0:
+            if self.frame_animation % 8 == 0:
                 self.image = self.run_images_right[1]
-            if self.frame_animation % 7 == 0:
-                self.image = self.run_images_right[2]
-            if self.frame_animation % 10 == 0:
-                self.image = self.run_images_right[3]
             if self.frame_animation % 12 == 0:
+                self.image = self.run_images_right[2]
+            if self.frame_animation % 16 == 0:
+                self.image = self.run_images_right[3]
+            if self.frame_animation % 20 == 0:
                 self.image = self.run_images_right[4]
-            if self.frame_animation % 15 == 0:
+            if self.frame_animation % 24 == 0:
                 self.image = self.run_images_right[5]
-            if self.frame_animation % 17 == 0:
+            if self.frame_animation % 28 == 0:
                 self.image = self.run_images_right[6]
             self.frame_animation += 0.5
             self.side = 'right'
         elif keys[pg.K_LEFT] or keys[pg.K_a]: # LEFT
             self.xvel = -self.MOVE_SPEED
-            if self.frame_animation % 3 == 0:
+            if self.frame_animation % 4 == 0:
                 self.image = self.run_images_left[0]
-            if self.frame_animation % 5 == 0:
+            if self.frame_animation % 8 == 0:
                 self.image = self.run_images_left[1]
-            if self.frame_animation % 7 == 0:
-                self.image = self.run_images_left[2]
-            if self.frame_animation % 10 == 0:
-                self.image = self.run_images_left[3]
             if self.frame_animation % 12 == 0:
+                self.image = self.run_images_left[2]
+            if self.frame_animation % 16 == 0:
+                self.image = self.run_images_left[3]
+            if self.frame_animation % 20 == 0:
                 self.image = self.run_images_left[4]
-            if self.frame_animation % 15 == 0:
+            if self.frame_animation % 24 == 0:
                 self.image = self.run_images_left[5]
-            if self.frame_animation % 17 == 0:
+            if self.frame_animation % 28 == 0:
                 self.image = self.run_images_left[6]
             self.frame_animation += 0.5
             self.side = 'left'
+        
+        # attack
+        if keys[pg.K_j] and self.attack_time_out <= 0:
+            self.attack_time_out = 30
+        
+        elif self.attack_time_out > 0:
+            self.bool_attack = True
+            if self.attack_time_out % 6 == 0:
+                self.attack_frame += 1
+            self.attack_time_out -= 1
+            if self.side == 'right':
+                self.image = self.attack_images_right[self.attack_frame-1]
+            if self.side == 'left':
+                self.image = self.attack_images_left[self.attack_frame-1]
+        if self.attack_time_out <= 0:
+            self.attack_time_out = 0
+            self.bool_attack = False
+            self.attack_frame = 0
+
         # jump
         if keys[pg.K_UP] or keys[pg.K_w] or keys[pg.K_SPACE]: # прыгаем, только когда можем оттолкнуться от земли
             if self.onGround:
@@ -98,20 +128,25 @@ class Player(GameSprite):
         if not(keys[pg.K_LEFT] or keys[pg.K_RIGHT] or keys[pg.K_a] or keys[pg.K_d]): # стоим, когда нет указаний идти   
             self.xvel = 0
             self.frame_animation = 0
-            if self.side == "right":
+            if self.side == "right" and not self.bool_attack:
                 self.image = self.stating_image_right
-            else:
+            elif self.side == "left" and not self.bool_attack:
                 self.image = self.stating_image_left
         if not self.onGround: # гравитация
             self.yvel += self.GRAVITY
         self.onGround = False;
-        self.rect.y += self.yvel 
+        
+        self.rect.y += self.yvel
         self.collide(0, self.yvel,platforms)
 
         self.rect.x += self.xvel
         self.collide(self.xvel, 0, platforms)
 
     def collide(self,xvel, yvel, pfs):
+        # attack
+        if pg.sprite.collide_rect(self, enemy) and self.attack_frame == 4 or self.attack_frame == 5 and self.bool_attack and pg.sprite.collide_rect(self, enemy):
+            print('attack')
+        # platforms
         for p in pfs:
             if pg.sprite.collide_rect(self, p):
                 if xvel > 0:                      # если движется вправо
@@ -127,7 +162,7 @@ class Player(GameSprite):
                 if yvel < 0:                      # если движется вверх
                     self.rect.top = p.rect.bottom # то не движется вверх
                     self.yvel = 0                 # и энергия прыжка пропадает
-
+                    
 class Platform(pg.sprite.Sprite):
     def __init__(self, x, y, COLOR, image=False):
         pg.sprite.Sprite.__init__(self)
@@ -165,6 +200,89 @@ with open("level1.txt", "r", encoding="utf-8") as f:
     level = f.read()
     level = level.split("\n")
 
+class Enemy(GameSprite):
+    def __init__(self, image: str, x: int, y: int, w: int, h: int) -> None:
+        super().__init__(image, x, y, w, h)
+        self.speed = 1
+        self.xvel = 0
+        self.yvel = 0
+        self.GRAVITY = 0.35
+        self.onGround = False
+        self.side = 'right'
+        
+        #image, animations
+        self.frame_animation = 0
+        
+        self.stating = self.image
+        self.run_images_right = [pg.transform.scale(pg.image.load(f"image/enemy/enemy_run{i}.png"), (w, h)) for i in range(1, 8)]
+        self.run_images_left = [pg.transform.flip(i, True, False) for i in self.run_images_right]
+    
+    def update(self):
+        if self.rect.x > player.rect.x:
+            self.xvel = -self.speed
+            if self.frame_animation % 4 == 0:
+                self.image = self.run_images_left[0]
+            if self.frame_animation % 8 == 0:
+                self.image = self.run_images_left[1]
+            if self.frame_animation % 12 == 0:
+                self.image = self.run_images_left[2]
+            if self.frame_animation % 16 == 0:
+                self.image = self.run_images_left[3]
+            if self.frame_animation % 20 == 0:
+                self.image = self.run_images_left[4]
+            if self.frame_animation % 24 == 0:
+                self.image = self.run_images_left[5]
+            if self.frame_animation % 28 == 0:
+                self.image = self.run_images_left[6]
+            self.frame_animation += 0.5
+            self.side = 'left'
+        else:
+            self.xvel = self.speed
+            if self.frame_animation % 4 == 0:
+                self.image = self.run_images_right[0]
+            if self.frame_animation % 8 == 0:
+                self.image = self.run_images_right[1]
+            if self.frame_animation % 12 == 0:
+                self.image = self.run_images_right[2]
+            if self.frame_animation % 16 == 0:
+                self.image = self.run_images_right[3]
+            if self.frame_animation % 20 == 0:
+                self.image = self.run_images_right[4]
+            if self.frame_animation % 24 == 0:
+                self.image = self.run_images_right[5]
+            if self.frame_animation % 28 == 0:
+                self.image = self.run_images_right[6]
+            self.frame_animation += 0.5
+            self.side = 'right'
+
+        self.rect.x += self.xvel
+        if not self.onGround: # гравитация
+            self.yvel += self.GRAVITY
+        self.onGround = False;
+        
+        self.rect.y += self.yvel
+        self.collide(0, self.yvel,platforms)
+
+        self.rect.x += self.xvel
+        self.collide(self.xvel, 0, platforms)
+
+    def collide(self,xvel, yvel, pfs):
+        for p in pfs:
+            if pg.sprite.collide_rect(self, p):
+                if xvel > 0:                      # если движется вправо
+                    self.rect.right = p.rect.left # то не движется вправо
+                if xvel < 0:                      # если движется влево
+                    self.rect.left = p.rect.right # то не движется влево
+
+                if yvel > 0:                      # если падает вниз
+                    self.rect.bottom = p.rect.top # то не падает вниз
+                    self.onGround = True          # и становится на что-то твердое
+                    self.yvel = 0                 # и энергия падения пропадает
+
+                if yvel < 0:                      # если движется вверх
+                    self.rect.top = p.rect.bottom # то не движется вверх
+                    self.yvel = 0                 # и энергия прыжка пропадает
+    
 def render_text(text, f, x=False, y=False):
     text_surface = f.render(text, True, (255,255,255))
     if not x and not y:
@@ -182,8 +300,10 @@ total_level_h = len(level)*30
 sprites = pg.sprite.Group()
 camera = Camera(camera_configure, total_level_w, total_level_h)
 player = Player('hero/1.png', 90, 120, 25, 50)
+enemy = Enemy("enemy\enemy.png", 90, 120, 25, 50)
 platforms = []
 sprites.add(player)
+sprites.add(enemy)
 
 # menu image
 image_menu = pg.transform.scale(pg.image.load("image/menu.png"), (800, 500))
@@ -274,8 +394,10 @@ while True:
             print(location)
 
     if location == 'game':
+        pg.mouse.set_visible(False)
         player.update(platforms)
         camera.update(player)
+        enemy.update()
         # draw sprites
         for e in sprites:
             screen.blit(e.image, camera.apply(e))
