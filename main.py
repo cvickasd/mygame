@@ -1,5 +1,7 @@
 import pygame as pg
 pg.init()
+pg.font.init()
+font = pg.font.Font("шрифт\Motel King Medium(RUS by Slavchansky).ttf", 25)
 pg.display.set_caption("MyGame")
 
 W, H = 1000, 600
@@ -38,7 +40,7 @@ class Player(GameSprite):
         self.yvel = 0 # скорость вертикального перемещения
         self.xvel = 0
         self.onGround = False # На земле ли я?
-        self.MOVE_SPEED = 7
+        self.MOVE_SPEED = 5
 
         # Animations, image
         self.frame_animation = 0
@@ -52,24 +54,7 @@ class Player(GameSprite):
         
     def update(self, platforms, HP=False):
         keys = pg.key.get_pressed()
-        if keys[pg.K_LEFT] or keys[pg.K_a]: # LEFT
-            self.xvel = -self.MOVE_SPEED
-            if self.frame_animation % 3 == 0:
-                self.image = self.run_images_left[0]
-            if self.frame_animation % 5 == 0:
-                self.image = self.run_images_left[1]
-            if self.frame_animation % 7 == 0:
-                self.image = self.run_images_left[2]
-            if self.frame_animation % 10 == 0:
-                self.image = self.run_images_left[3]
-            if self.frame_animation % 12 == 0:
-                self.image = self.run_images_left[4]
-            if self.frame_animation % 15 == 0:
-                self.image = self.run_images_left[5]
-            if self.frame_animation % 17 == 0:
-                self.image = self.run_images_left[6]
-            self.frame_animation += 0.5
-            self.side = 'left'
+        # left and right
         if keys[pg.K_RIGHT] or keys[pg.K_d]: # RIGHT
             self.xvel = self.MOVE_SPEED
             if self.frame_animation % 3 == 0:
@@ -88,6 +73,25 @@ class Player(GameSprite):
                 self.image = self.run_images_right[6]
             self.frame_animation += 0.5
             self.side = 'right'
+        elif keys[pg.K_LEFT] or keys[pg.K_a]: # LEFT
+            self.xvel = -self.MOVE_SPEED
+            if self.frame_animation % 3 == 0:
+                self.image = self.run_images_left[0]
+            if self.frame_animation % 5 == 0:
+                self.image = self.run_images_left[1]
+            if self.frame_animation % 7 == 0:
+                self.image = self.run_images_left[2]
+            if self.frame_animation % 10 == 0:
+                self.image = self.run_images_left[3]
+            if self.frame_animation % 12 == 0:
+                self.image = self.run_images_left[4]
+            if self.frame_animation % 15 == 0:
+                self.image = self.run_images_left[5]
+            if self.frame_animation % 17 == 0:
+                self.image = self.run_images_left[6]
+            self.frame_animation += 0.5
+            self.side = 'left'
+        # jump
         if keys[pg.K_UP] or keys[pg.K_w] or keys[pg.K_SPACE]: # прыгаем, только когда можем оттолкнуться от земли
             if self.onGround:
                 self.yvel = -self.JUMP_POWER
@@ -160,6 +164,18 @@ def camera_configure(camera, target_rect):
 with open("level1.txt", "r", encoding="utf-8") as f:
     level = f.read()
     level = level.split("\n")
+
+def render_text(text, f, x=False, y=False):
+    text_surface = f.render(text, True, (255,255,255))
+    if not x and not y:
+        screen.blit(text_surface, (W//2-f.size(text)[0]/2, H//2-f.size(text)[1]/2))            
+    elif not x:
+        screen.blit(text_surface, (W//2-f.size(text)[0]/2, y))
+    elif not y:
+        screen.blit(text_surface, (x, H//2-f.size(text)[1]/2))           
+    elif x and y:
+        screen.blit(text_surface, (x, y))
+
 total_level_w = len(level[0])*30
 total_level_h = len(level)*30
 
@@ -218,6 +234,10 @@ for row in level: # вся строка
             pf = Platform(x, y, "asdas", "image/ground/block_down.png")
             sprites.add(pf)
             platforms.append(pf)
+        if col == '7':
+            pf = Platform(x, y, "asdas", "image/ground/block_up_down.png")
+            sprites.add(pf)
+            platforms.append(pf)
         x += PLATFORM_WIDTH #блоки платформы ставятся на ширине блоков
     y += PLATFORM_HEIGHT    #то же самое и с высотой
     x = 0                   #на каждой новой строчке начинаем с нуля
@@ -237,10 +257,22 @@ while True:
     if location == 'menu':
         for i in background_images:
             screen.blit(i, (0, 0))
-        screen.blit(image_menu, (W//2-400, H//2-300))
-        screen.blit(image_button_play, (W//2-50, 165))
-        screen.blit(image_button_settings, (W//2-50, 235))
-        screen.blit(image_button_exit, (W//2-50, 305))
+        render_text("MYGAME", font, False, 100)
+        render_text("ИГРАТЬ", font, False, H//2-100)
+        render_text("НАСТРОЙКИ", font)
+        render_text("ВЫЙТИ", font, False, H//2+100)
+        if pg.mouse.get_pressed()[0]:
+            x, y = pg.mouse.get_pos() 
+            if 440 <= x <= 555 and 195 <= y <= 225:
+                location = 'game'
+            elif 400 <= x <= 595 and 285 <= y <= 315:
+                location = 'settings'
+            elif 440 <= x <= 555 and 400 <= y <= 425:
+                location = 'quit'
+                run = False
+                pg.quit()
+            print(location)
+
     if location == 'game':
         player.update(platforms)
         camera.update(player)
