@@ -253,7 +253,7 @@ while True:
     # draw background
     for i in background_images:
         screen.blit(i, (0, 0))
-    
+
     if location == 'menu':
         for i in background_images:
             screen.blit(i, (0, 0))
