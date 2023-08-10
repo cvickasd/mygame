@@ -59,13 +59,10 @@ class Player(GameSprite):
         self.run_images_right = [pg.transform.scale(pg.image.load(fr"assets/Characters/Hero/Swordsman_Run/hero-running-separated{i}.png"), (w, h)) for i in range(2, 10)]
         self.run_images_left = [pg.transform.flip(i, True, False) for i in self.run_images_right]
         
-        self.jump_images_right = [pg.transform.scale(pg.image.load(fr"assets/Characters/Hero/Swordsman_Jump/Swordsman000{i}.png"), (w, h)) for i in range(0, 9)]
-        self.jump_images_left = [pg.transform.flip(i, True, False) for i in self.jump_images_right]
+        self.jump_images_right = pg.transform.scale(pg.image.load(fr"image\Swordsman0006.png"), (w, h))
+        self.jump_images_left = pg.transform.flip(self.jump_images_right, True, False)
 
         self.attack_images_right = [pg.transform.scale(pg.image.load(fr"image\hero\attack_{i}.png"), (w, h)) for i in range(1, 3)]
-        self.attack_images_right.append(pg.transform.scale(pg.image.load(r"image\hero\attack_3.png"), (40, h)))
-        self.attack_images_right.append(pg.transform.scale(pg.image.load(r"image\hero\attack_4.png"), (40, h)))
-        self.attack_images_right.append(pg.transform.scale(pg.image.load(r"image\hero\attack_5.png"), (25, h)))
         
         self.attack_images_left = [pg.transform.flip(i, True, False) for i in self.attack_images_right]
         
@@ -145,19 +142,25 @@ class Player(GameSprite):
             
         self.onGround = False;
         if self.isJump:
-            if self.frame_jump_animation < 8:  # Проверка на допустимый диапазон анимации прыжка
-                self.image = self.jump_images_right[self.frame_jump_animation]
+            # if self.frame_jump_animation < 2:  # Проигрываем первые 2 картинки прыжка
+            #     self.image = self.jump_images_right[self.frame_jump_animation]
+            #     self.frame_jump_animation += 1
+            # elif self.frame_jump_animation < 8:  # Затем проигрываем полную анимацию прыжка
+            #     self.image = self.jump_images_right[self.frame_jump_animation]
 
-                # Обновление анимации прыжка каждые 10 тиков
-                self.tick_jump_animation += 1
-                if self.tick_jump_animation >= 10:
-                    self.frame_jump_animation += 1
-                    self.tick_jump_animation = 0  # Сброс таймера
-
-            if self.frame_jump_animation >= 8:  # Если анимация завершена, сбрасываем параметры
-                self.frame_jump_animation = 0
-                self.isJump = False
-                self.tick_jump_animation = 0
+            #     # Обновление анимации прыжка каждые 10 тиков
+            #     self.tick_jump_animation += 1
+            #     if self.tick_jump_animation >= 10:
+            #         self.frame_jump_animation += 1
+            #         self.tick_jump_animation = 0  # Сброс таймера
+            # else:  # Когда анимация завершена, сбрасываем параметры
+            #     self.frame_jump_animation = 0
+            #     self.isJump = False
+            #     self.tick_jump_animation = 0
+            if self.side == 'right':
+                self.image = self.jump_images_right
+            if self.side == 'left':
+                self.image = self.jump_images_left
 
 
         self.rect.y += self.yvel
@@ -347,7 +350,7 @@ for row in level: # вся строка
     for col in row: # каждый символ
         if col == "-":
             #создаем блок, заливаем его цветом и рисеум его
-            pf = Platform(x, y, "#036a96", "image/ground/block_up.png")
+            pf = Platform(x, y, "#036a96", "image/cublstone/up.png")
             sprites.add(pf)
             platforms.append(pf)
         if col == 'r':
@@ -444,4 +447,4 @@ while True:
             screen.blit(e.image, camera.apply(e))
 
     pg.display.update()
-    clock.tick(60)
+    clock.tick(90)
