@@ -6,7 +6,7 @@ pg.font.init()
 font = pg.font.Font("шрифт\Motel King Medium(RUS by Slavchansky).ttf", 25)
 pg.display.set_caption("MyGame")
 
-W, H = 1000, 600
+W, H = 800, 600
 screen = pg.display.set_mode((W, H))
 
 clock = pg.time.Clock()
@@ -311,6 +311,9 @@ class Enemy(GameSprite):
     
 def render_text(text, f, x=False, y=False):
     text_surface = f.render(text, True, (255,255,255))
+    text_rect = text_surface.get_rect()
+    mouse_x, mouse_y = pg.mouse.get_pos()
+    click = pg.mouse.get_pressed()
     if not x and not y:
         screen.blit(text_surface, (W//2-f.size(text)[0]/2, H//2-f.size(text)[1]/2))            
     elif not x:
@@ -319,6 +322,8 @@ def render_text(text, f, x=False, y=False):
         screen.blit(text_surface, (x, H//2-f.size(text)[1]/2))           
     elif x and y:
         screen.blit(text_surface, (x, y))
+    if text_rect.collidepoint(mouse_x, mouse_y) and click[0]:
+        print("click")
 
 total_level_w = len(level[0])*30
 total_level_h = len(level)*30
