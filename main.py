@@ -63,7 +63,7 @@ class Player(GameSprite):
         self.jump_images_right = pg.image.load(fr"assets/Characters/Hero/Swordsman_Jump/Swordsman0006.png").convert_alpha()
         self.jump_images_left = pg.transform.flip(self.jump_images_right, True, False)
 
-        self.attack_images_right = [pg.transform.scale(pg.image.load(fr"image\Swordsman000{i}.png"), (48, 48)) for i in range(1, 6)]
+        self.attack_images_right = [pg.transform.scale(pg.image.load(fr"assets/Characters/Hero/Swordsman_Slash/Swordsman000{i}.png"), (48, 48)) for i in range(1, 6)]
 
         self.attack_images_left = [pg.transform.flip(i, True, False) for i in self.attack_images_right]
 
@@ -223,10 +223,9 @@ def camera_configure(camera, target_rect):
     t = min(0, t)                  # Не движемся дальше верхней границы
 
     return pg.Rect(l, t, w, h)  
-with open("level1.txt", "r", encoding="utf-8") as f:
-    level = f.read()
-    level = level.split("\n")
-
+with open("levels.json", "r", encoding="utf-8") as f:
+    levels = json.load(f)
+level = levels["level1"]
 class Enemy(GameSprite):
     def __init__(self, image: str, x: int, y: int, w: int, h: int) -> None:
         super().__init__(image, x, y, w, h)
@@ -241,7 +240,7 @@ class Enemy(GameSprite):
         self.frame_animation = 0
         
         self.stating = self.image
-        self.run_images_right = [pg.transform.scale(pg.image.load(f"image/enemy/enemy_run{i}.png"), (w, h)) for i in range(1, 8)]
+        self.run_images_right = [pg.image.load(f"image/enemy/enemy_run{i}.png") for i in range(1, 8)]
         self.run_images_left = [pg.transform.flip(i, True, False) for i in self.run_images_right]
     
     def update(self):
