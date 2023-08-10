@@ -1,5 +1,6 @@
 import pygame as pg
 import sys
+import json
 pg.init()
 pg.font.init()
 font = pg.font.Font("шрифт\Motel King Medium(RUS by Slavchansky).ttf", 25)
@@ -18,10 +19,10 @@ location = 'menu'
 class GameSprite(pg.sprite.Sprite):
     def __init__(self, image:str, x:int, y:int, w:int, h:int, hero=False) -> None:
         super().__init__()
-        self.image = pg.transform.scale(pg.image.load(image), (w, h)).convert_alpha()
+        self.image = pg.image.load(image).convert_alpha()
         self.rect = self.image.get_rect(centerx=W//2, bottom=H)
         # self.rect = pg.Rect()
- 
+
     def draw(self):
         screen.blit(self.image, (self.rect.x, self.rect.y))
 
@@ -56,17 +57,17 @@ class Player(GameSprite):
         self.stating_image_right = self.image
         self.stating_image_left = pg.transform.flip(self.stating_image_right, True, False)
         
-        self.run_images_right = [pg.transform.scale(pg.image.load(fr"assets/Characters/Hero/Swordsman_Run/hero-running-separated{i}.png"), (w, h)) for i in range(2, 10)]
+        self.run_images_right = [pg.image.load(fr"assets/Characters/Hero/Swordsman_Run/hero-running-separated{i}.png").convert_alpha() for i in range(2, 10)]
         self.run_images_left = [pg.transform.flip(i, True, False) for i in self.run_images_right]
-        
-        self.jump_images_right = pg.transform.scale(pg.image.load(fr"image\Swordsman0006.png"), (w, h))
+        image
+        self.jump_images_right = pg.image.load(fr"assets/Characters/Hero/Swordsman_Jump/Swordsman0006.png").convert_alpha()
         self.jump_images_left = pg.transform.flip(self.jump_images_right, True, False)
 
-        self.attack_images_right = [pg.transform.scale(pg.image.load(fr"image\hero\attack_{i}.png"), (w, h)) for i in range(1, 3)]
-        
+        self.attack_images_right = [pg.transform.scale(pg.image.load(fr"image\Swordsman000{i}.png"), (48, 48)) for i in range(1, 6)]
+
         self.attack_images_left = [pg.transform.flip(i, True, False) for i in self.attack_images_right]
-        
-    def update(self, platforms, HP=False):
+
+    def update(self, platforms, enemies):
         keys = pg.key.get_pressed()
         # left and right
         if keys[pg.K_RIGHT] or keys[pg.K_d]: # RIGHT
@@ -107,22 +108,6 @@ class Player(GameSprite):
             self.side = 'left'
 
         # attack
-        if keys[pg.K_j] and self.attack_time_out <= 0 or pg.mouse.get_pressed()[0]:
-            self.attack_time_out = 30
-
-        elif self.attack_time_out > 0:
-            self.bool_attack = True
-            if self.attack_time_out % 6 == 0:
-                self.attack_frame += 1
-            self.attack_time_out -= 1
-            if self.side == 'right':
-                self.image = self.attack_images_right[self.attack_frame-1]
-            if self.side == 'left':
-                self.image = self.attack_images_left[self.attack_frame-1]
-        if self.attack_time_out <= 0:
-            self.attack_time_out = 0
-            self.bool_attack = False
-            self.attack_frame = 0
 
         # jump
         if keys[pg.K_UP] or keys[pg.K_w] or keys[pg.K_SPACE]:
@@ -142,37 +127,42 @@ class Player(GameSprite):
             
         self.onGround = False;
         if self.isJump:
-            # if self.frame_jump_animation < 2:  # Проигрываем первые 2 картинки прыжка
-            #     self.image = self.jump_images_right[self.frame_jump_animation]
-            #     self.frame_jump_animation += 1
-            # elif self.frame_jump_animation < 8:  # Затем проигрываем полную анимацию прыжка
-            #     self.image = self.jump_images_right[self.frame_jump_animation]
-
-            #     # Обновление анимации прыжка каждые 10 тиков
-            #     self.tick_jump_animation += 1
-            #     if self.tick_jump_animation >= 10:
-            #         self.frame_jump_animation += 1
-            #         self.tick_jump_animation = 0  # Сброс таймера
-            # else:  # Когда анимация завершена, сбрасываем параметры
-            #     self.frame_jump_animation = 0
-            #     self.isJump = False
-            #     self.tick_jump_animation = 0
             if self.side == 'right':
                 self.image = self.jump_images_right
             if self.side == 'left':
                 self.image = self.jump_images_left
 
+        if keys[pg.K_j] and self.attack_time_out <= 0 or pg.mouse.get_pressed()[0]:
+            self.attack_time_out = 30
+
+        elif self.attack_time_out > 0:
+            self.bool_attack = True
+            if self.attack_time_out % 6 == 0:
+                self.attack_frame += 1
+            self.attack_time_out -= 1
+            if self.side == 'right':
+                self.image = self.attack_images_right[self.attack_frame - 1]
+            if self.side == 'left':
+                self.image = self.attack_images_left[self.attack_frame - 1]
+            if self.attack_frame >= len(self.attack_images_right):
+                # Атака завершена, сбрасываем параметры атаки
+                self.attack_time_out = 0
+                self.bool_attack = False
+                self.attack_frame = 0
+        if self.attack_time_out <= 0:
+            self.attack_time_out = 0
+            self.bool_attack = False
+            self.attack_frame = 0
 
         self.rect.y += self.yvel
         self.collide(0, self.yvel,platforms)
 
         self.rect.x += self.xvel
         self.collide(self.xvel, 0, platforms)
-
+        
+        self.attack_collide(enemies)
+        
     def collide(self,xvel, yvel, pfs):
-        # attack
-        if pg.sprite.collide_rect(self, enemy) and self.attack_frame == 4 or self.attack_frame == 5 and self.bool_attack and pg.sprite.collide_rect(self, enemy):
-            print('attack')
         # platforms
         for p in pfs:
             if pg.sprite.collide_rect(self, p):
@@ -189,11 +179,17 @@ class Player(GameSprite):
                     self.frame_jump_animation = 0
                     self.isJump = False
 
-
                 if yvel < 0:                      # если движется вверх
                     self.rect.top = p.rect.bottom # то не движется вверх
                     self.yvel = 0                 # и энергия прыжка пропадает
-                    
+
+    def attack_collide(self, enemies):
+        for enemy in enemies:
+            if self.attack_frame >= 4 and self.attack_frame <= 5 and self.bool_attack:
+                if pg.sprite.collide_rect(self, enemy):
+                    print('Attack hit')
+                    # Здесь можно добавить код для нанесения урона врагу
+
 class Platform(pg.sprite.Sprite):
     def __init__(self, x, y, COLOR, image=False):
         pg.sprite.Sprite.__init__(self)
@@ -413,7 +409,7 @@ while True:
         if ev.type == pg.MOUSEBUTTONDOWN:
             mouse = pg.mouse.get_pos()
             print(mouse)
-
+    
     # draw background
     for i in background_images:
         screen.blit(i, (0, 0))
@@ -439,7 +435,7 @@ while True:
 
     if location == 'game':
         pg.mouse.set_visible(False)
-        player.update(platforms)
+        player.update(platforms, [enemy])
         camera.update(player)
         enemy.update()
         # draw sprites
