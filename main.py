@@ -1,4 +1,5 @@
 import pygame as pg
+import sys
 pg.init()
 pg.font.init()
 font = pg.font.Font("шрифт\Motel King Medium(RUS by Slavchansky).ttf", 25)
@@ -15,9 +16,9 @@ location = 'menu'
 
 # class
 class GameSprite(pg.sprite.Sprite):
-    def __init__(self, image:str, x:int, y:int, w:int, h:int) -> None:
+    def __init__(self, image:str, x:int, y:int, w:int, h:int, hero=False) -> None:
         super().__init__()
-        self.image = pg.transform.scale(pg.image.load(f'image\{image}'), (w, h)).convert_alpha()
+        self.image = pg.transform.scale(pg.image.load(image), (w, h)).convert_alpha()
         self.rect = self.image.get_rect(centerx=W//2, bottom=H)
         # self.rect = pg.Rect()
  
@@ -36,6 +37,7 @@ class Player(GameSprite):
         self.time_mouse = 0 # чтобы нельзя была слишком быстро стрелять
         self.mouse = False # Знать нажата ли была кнопка
         self.JUMP_POWER = 12
+        self.isJump = False # если сейчас прыжок то анимация прыжка
         self.GRAVITY = 0.35 # Сила, которая будет тянуть нас вниз
         self.yvel = 0 # скорость вертикального перемещения
         self.xvel = 0
@@ -44,6 +46,8 @@ class Player(GameSprite):
 
         # Animations, image
         self.frame_animation = 0
+        self.tick_jump_animation = 0
+        self.frame_jump_animation = 0
         self.attack_frame = 0
         self.attack_time_out = 0
         self.bool_attack = False # Now attack?
@@ -52,10 +56,12 @@ class Player(GameSprite):
         self.stating_image_right = self.image
         self.stating_image_left = pg.transform.flip(self.stating_image_right, True, False)
         
-        self.run_images_right = [pg.transform.scale(pg.image.load(fr"image\hero\run_{i}.png"), (w, h)) for i in range(1, 8)]
-        
+        self.run_images_right = [pg.transform.scale(pg.image.load(fr"assets/Characters/Hero/Swordsman_Run/hero-running-separated{i}.png"), (w, h)) for i in range(2, 10)]
         self.run_images_left = [pg.transform.flip(i, True, False) for i in self.run_images_right]
         
+        self.jump_images_right = [pg.transform.scale(pg.image.load(fr"assets/Characters/Hero/Swordsman_Jump/Swordsman000{i}.png"), (w, h)) for i in range(0, 9)]
+        self.jump_images_left = [pg.transform.flip(i, True, False) for i in self.jump_images_right]
+
         self.attack_images_right = [pg.transform.scale(pg.image.load(fr"image\hero\attack_{i}.png"), (w, h)) for i in range(1, 3)]
         self.attack_images_right.append(pg.transform.scale(pg.image.load(r"image\hero\attack_3.png"), (40, h)))
         self.attack_images_right.append(pg.transform.scale(pg.image.load(r"image\hero\attack_4.png"), (40, h)))
@@ -102,11 +108,11 @@ class Player(GameSprite):
                 self.image = self.run_images_left[6]
             self.frame_animation += 0.5
             self.side = 'left'
-        
+
         # attack
-        if keys[pg.K_j] and self.attack_time_out <= 0:
+        if keys[pg.K_j] and self.attack_time_out <= 0 or pg.mouse.get_pressed()[0]:
             self.attack_time_out = 30
-        
+
         elif self.attack_time_out > 0:
             self.bool_attack = True
             if self.attack_time_out % 6 == 0:
@@ -122,9 +128,11 @@ class Player(GameSprite):
             self.attack_frame = 0
 
         # jump
-        if keys[pg.K_UP] or keys[pg.K_w] or keys[pg.K_SPACE]: # прыгаем, только когда можем оттолкнуться от земли
+        if keys[pg.K_UP] or keys[pg.K_w] or keys[pg.K_SPACE]:
             if self.onGround:
                 self.yvel = -self.JUMP_POWER
+                self.isJump = True
+
         if not(keys[pg.K_LEFT] or keys[pg.K_RIGHT] or keys[pg.K_a] or keys[pg.K_d]): # стоим, когда нет указаний идти   
             self.xvel = 0
             self.frame_animation = 0
@@ -134,8 +142,24 @@ class Player(GameSprite):
                 self.image = self.stating_image_left
         if not self.onGround: # гравитация
             self.yvel += self.GRAVITY
+            
         self.onGround = False;
-        
+        if self.isJump:
+            if self.frame_jump_animation < 8:  # Проверка на допустимый диапазон анимации прыжка
+                self.image = self.jump_images_right[self.frame_jump_animation]
+
+                # Обновление анимации прыжка каждые 10 тиков
+                self.tick_jump_animation += 1
+                if self.tick_jump_animation >= 10:
+                    self.frame_jump_animation += 1
+                    self.tick_jump_animation = 0  # Сброс таймера
+
+            if self.frame_jump_animation >= 8:  # Если анимация завершена, сбрасываем параметры
+                self.frame_jump_animation = 0
+                self.isJump = False
+                self.tick_jump_animation = 0
+
+
         self.rect.y += self.yvel
         self.collide(0, self.yvel,platforms)
 
@@ -158,6 +182,10 @@ class Player(GameSprite):
                     self.rect.bottom = p.rect.top # то не падает вниз
                     self.onGround = True          # и становится на что-то твердое
                     self.yvel = 0                 # и энергия падения пропадает
+                    self.tick_jump_animation = 0
+                    self.frame_jump_animation = 0
+                    self.isJump = False
+
 
                 if yvel < 0:                      # если движется вверх
                     self.rect.top = p.rect.bottom # то не движется вверх
@@ -299,8 +327,8 @@ total_level_h = len(level)*30
 
 sprites = pg.sprite.Group()
 camera = Camera(camera_configure, total_level_w, total_level_h)
-player = Player('hero/1.png', 90, 120, 25, 50)
-enemy = Enemy("enemy\enemy.png", 90, 120, 25, 50)
+player = Player('assets/Characters/Hero/Swordsman_Idle/Swordsman0000.png', 90, 120, 60, 100)
+enemy = Enemy("image\enemy\enemy.png", 90, 120, 25, 50)
 platforms = []
 sprites.add(player)
 sprites.add(enemy)
@@ -358,6 +386,18 @@ for row in level: # вся строка
             pf = Platform(x, y, "asdas", "image/ground/block_up_down.png")
             sprites.add(pf)
             platforms.append(pf)
+        if col == '8':
+            pf = Platform(x, y, "asdas", "image/ground/block_up_stone_left.png")
+            sprites.add(pf)
+            platforms.append(pf)
+        if col == '9':
+            pf = Platform(x, y, "asdas", "image/ground/block_up_stone_right.png")
+            sprites.add(pf)
+            platforms.append(pf)
+        if col == '0':
+            pf = Platform(x, y, "asdas", "image/cublstone/up.png")
+            sprites.add(pf)
+            platforms.append(pf)
         x += PLATFORM_WIDTH #блоки платформы ставятся на ширине блоков
     y += PLATFORM_HEIGHT    #то же самое и с высотой
     x = 0                   #на каждой новой строчке начинаем с нуля
@@ -366,6 +406,7 @@ while True:
     for ev in pg.event.get():
         if ev.type == pg.QUIT:
             pg.quit()
+            sys.exit()
         if ev.type == pg.MOUSEBUTTONDOWN:
             mouse = pg.mouse.get_pos()
             print(mouse)
