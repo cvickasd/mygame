@@ -11,6 +11,7 @@ screen = pg.display.set_mode((W, H))
 
 clock = pg.time.Clock()
 
+smoke_images = [pg.transform.scale(pg.image.load(f"assets/дым/{i}.png"), (50, 50)) for i in range(1, 4)]
 background_images = [pg.transform.scale(pg.image.load(rf"image\oak_woods_v1.0\background\background_layer_{i}.png"), (W, H)).convert_alpha() for i in range(1, 4)]
 location = 'menu'
 
@@ -30,8 +31,9 @@ class Player(GameSprite):
         super().__init__(image, x, y, w, h)
         self.speed = 5
         self.points = 0 # очки для второй игры
-
         self.lose = False # если враг дотронулся до игрока то lose равен True
+        self.pressed_shift = False # для shift 
+        self.time_pressed_shift = 0
         # типо куда смотрит
         self.side = 'right'
         self.time_mouse = 0 # чтобы нельзя была слишком быстро стрелять
@@ -64,6 +66,7 @@ class Player(GameSprite):
 
         self.attack_images_right = [pg.transform.scale(pg.image.load(fr"assets/Characters/Hero/Swordsman_Slash/Swordsman000{i}.png").convert_alpha(), (60, 100)) for i in range(0, 6)]
         self.attack_images_left = [pg.transform.flip(i, True, False) for i in self.attack_images_right]
+ 
     def update(self, platforms, enemies):
         keys = pg.key.get_pressed()
         # left and right
@@ -121,7 +124,15 @@ class Player(GameSprite):
                 self.image = self.stating_image_left
         if not self.onGround: # гравитация
             self.yvel += self.GRAVITY
-            
+        
+        if keys[pg.K_LSHIFT] and self.time_pressed_shift <= 0 and self.rect.x >= 149 and self.rect.x <= 2390-149:
+            self.time_pressed_shift = 30
+            if self.side == 'right': self.rect.x += 100
+            else: self.rect.x += -self.MOVE_SPEED*10
+        
+        if self.time_pressed_shift > 0:
+            self.time_pressed_shift -= 1 
+                
         self.onGround = False;
         if self.isJump:
             if self.side == 'right':
@@ -182,17 +193,17 @@ class Player(GameSprite):
 
     def attack_collide(self, enemies):
         for enemy in enemies:
-            if self.side == 'right' and enemy.rect.x <= self.rect.x:
+            if self.side == 'right' and enemy.rect.x >= self.rect.x:
                 if self.attack_frame >= 4 and self.attack_frame <= 5 and self.bool_attack:
                     if pg.sprite.collide_rect(self, enemy):
                         print('Попадание атаки')
                         # Отодвинуть врага назад
-                        enemy.rect.x += 50  # Вправо от игрока
-            if self.side == 'left' and enemy.rect.x >= self.rect.x:
+                        enemy.rect.x += 100  # Вправо от игрока
+            if self.side == 'left' and enemy.rect.x <= self.rect.x:
                 if self.attack_frame >= 4 and self.attack_frame <= 5 and self.bool_attack:
                     if pg.sprite.collide_rect(self, enemy):
                         print('Попадание атаки')
-                        enemy.rect.x -= 50  # Влево от игрока
+                        enemy.rect.x -= 100  # Влево от игрока
 
 class Platform(pg.sprite.Sprite):
     def __init__(self, x, y, COLOR, image=False):
@@ -229,10 +240,12 @@ def camera_configure(camera, target_rect):
     return pg.Rect(l, t, w, h)  
 with open("levels.json", "r", encoding="utf-8") as f:
     levels = json.load(f)
-level = levels["level1"]
+level = levels["level1"]["level"]
+
 class Enemy(GameSprite):
-    def __init__(self, image: str, x: int, y: int, w: int, h: int) -> None:
+    def __init__(self, image: str, x: int, y: int, w: int, h: int, HP:int) -> None:
         super().__init__(image, x, y, w, h)
+        self.HP = HP
         self.speed = 1
         self.xvel = 0
         self.yvel = 0
@@ -244,7 +257,7 @@ class Enemy(GameSprite):
         self.frame_animation = 0
         
         self.stating = self.image
-        self.run_images_left = [pg.image.load(f"assets/Characters/Ennemy/Swordsman000{i}.png") for i in range(4)]
+        self.run_images_left = [pg.transform.scale(pg.image.load(f"assets/Characters/Swordsman000{i}.png"), (w, h)) for i in range(4)]
         self.run_images_right = [pg.transform.flip(i, True, False) for i in self.run_images_left]
     
     def update(self):
@@ -284,6 +297,8 @@ class Enemy(GameSprite):
         self.rect.x += self.xvel
         self.collide(self.xvel, 0, platforms)
 
+        self.collide_player()
+
     def collide(self,xvel, yvel, pfs):
         for p in pfs:
             if pg.sprite.collide_rect(self, p):
@@ -300,6 +315,10 @@ class Enemy(GameSprite):
                 if yvel < 0:                      # если движется вверх
                     self.rect.top = p.rect.bottom # то не движется вверх
                     self.yvel = 0                 # и энергия прыжка пропадает
+    
+    def collide_player(self):
+        if pg.sprite.collide_rect(self, player): 
+            print("МИНУС ХП")
     
 def render_text(text, f, x=False, y=False):
     text_surface = f.render(text, True, (255,255,255))
@@ -318,10 +337,13 @@ total_level_h = len(level)*30
 sprites = pg.sprite.Group()
 camera = Camera(camera_configure, total_level_w, total_level_h)
 player = Player('assets/Characters/Hero/Swordsman_Idle/Swordsman0000.png', 48, 48, 60, 100)
-enemy = Enemy("image\enemy\enemy.png", 90, 120, 39, 24)
+enemy = Enemy("image\enemy\enemy.png", 90, 120, 48, 48, 3)
 platforms = []
 sprites.add(player)
 sprites.add(enemy)
+
+# местоположение игрока
+player.rect.x, player.rect.y = levels["level1"]["player_pos"][0], levels["level1"]["player_pos"][1]
 
 # level
 PLATFORM_WIDTH = PLATFORM_HEIGHT = 30
