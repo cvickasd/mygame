@@ -19,9 +19,8 @@ location = 'menu'
 class GameSprite(pg.sprite.Sprite):
     def __init__(self, image:str, x:int, y:int, w:int, h:int, hero=False) -> None:
         super().__init__()
-        self.image = pg.image.load(image).convert_alpha()
+        self.image = pg.transform.scale(pg.image.load(image), (w, h)).convert_alpha()
         self.rect = self.image.get_rect(centerx=W//2, bottom=H)
-        # self.rect = pg.Rect()
 
     def draw(self):
         screen.blit(self.image, (self.rect.x, self.rect.y))
@@ -54,19 +53,17 @@ class Player(GameSprite):
         self.bool_attack = False # Now attack?
         
         # типо стоять, я хз как на инглишь будет стоять
-        self.stating_image_right = self.image
+        self.stating_image_right = pg.transform.scale(self.image, (54, 100))
         self.stating_image_left = pg.transform.flip(self.stating_image_right, True, False)
-        
-        self.run_images_right = [pg.image.load(fr"assets/Characters/Hero/Swordsman_Run/hero-running-separated{i}.png").convert_alpha() for i in range(2, 10)]
+
+        self.run_images_right = [pg.transform.scale(pg.image.load(fr"assets/Characters/Hero/Swordsman_Run/hero-running-separated{i}.png").convert_alpha(), (60, 100)) for i in range(2, 10)]
         self.run_images_left = [pg.transform.flip(i, True, False) for i in self.run_images_right]
-        image
-        self.jump_images_right = pg.image.load(fr"assets/Characters/Hero/Swordsman_Jump/Swordsman0006.png").convert_alpha()
+
+        self.jump_images_right = pg.transform.scale(pg.image.load(fr"assets/Characters/Hero/Swordsman_Jump/Swordsman0006.png").convert_alpha(), (60, 100))
         self.jump_images_left = pg.transform.flip(self.jump_images_right, True, False)
 
-        self.attack_images_right = [pg.transform.scale(pg.image.load(fr"assets/Characters/Hero/Swordsman_Slash/Swordsman000{i}.png"), (48, 48)) for i in range(1, 6)]
-
+        self.attack_images_right = [pg.transform.scale(pg.image.load(fr"assets/Characters/Hero/Swordsman_Slash/Swordsman000{i}.png").convert_alpha(), (60, 100)) for i in range(0, 6)]
         self.attack_images_left = [pg.transform.flip(i, True, False) for i in self.attack_images_right]
-
     def update(self, platforms, enemies):
         keys = pg.key.get_pressed()
         # left and right
@@ -185,10 +182,17 @@ class Player(GameSprite):
 
     def attack_collide(self, enemies):
         for enemy in enemies:
-            if self.attack_frame >= 4 and self.attack_frame <= 5 and self.bool_attack:
-                if pg.sprite.collide_rect(self, enemy):
-                    print('Attack hit')
-                    # Здесь можно добавить код для нанесения урона врагу
+            if self.side == 'right' and enemy.rect.x <= self.rect.x:
+                if self.attack_frame >= 4 and self.attack_frame <= 5 and self.bool_attack:
+                    if pg.sprite.collide_rect(self, enemy):
+                        print('Попадание атаки')
+                        # Отодвинуть врага назад
+                        enemy.rect.x += 50  # Вправо от игрока
+            if self.side == 'left' and enemy.rect.x >= self.rect.x:
+                if self.attack_frame >= 4 and self.attack_frame <= 5 and self.bool_attack:
+                    if pg.sprite.collide_rect(self, enemy):
+                        print('Попадание атаки')
+                        enemy.rect.x -= 50  # Влево от игрока
 
 class Platform(pg.sprite.Sprite):
     def __init__(self, x, y, COLOR, image=False):
@@ -240,8 +244,8 @@ class Enemy(GameSprite):
         self.frame_animation = 0
         
         self.stating = self.image
-        self.run_images_right = [pg.image.load(f"image/enemy/enemy_run{i}.png") for i in range(1, 8)]
-        self.run_images_left = [pg.transform.flip(i, True, False) for i in self.run_images_right]
+        self.run_images_left = [pg.image.load(f"assets/Characters/Ennemy/Swordsman000{i}.png") for i in range(4)]
+        self.run_images_right = [pg.transform.flip(i, True, False) for i in self.run_images_left]
     
     def update(self):
         if self.rect.x > player.rect.x:
@@ -254,12 +258,6 @@ class Enemy(GameSprite):
                 self.image = self.run_images_left[2]
             if self.frame_animation % 16 == 0:
                 self.image = self.run_images_left[3]
-            if self.frame_animation % 20 == 0:
-                self.image = self.run_images_left[4]
-            if self.frame_animation % 24 == 0:
-                self.image = self.run_images_left[5]
-            if self.frame_animation % 28 == 0:
-                self.image = self.run_images_left[6]
             self.frame_animation += 0.5
             self.side = 'left'
         else:
@@ -272,12 +270,6 @@ class Enemy(GameSprite):
                 self.image = self.run_images_right[2]
             if self.frame_animation % 16 == 0:
                 self.image = self.run_images_right[3]
-            if self.frame_animation % 20 == 0:
-                self.image = self.run_images_right[4]
-            if self.frame_animation % 24 == 0:
-                self.image = self.run_images_right[5]
-            if self.frame_animation % 28 == 0:
-                self.image = self.run_images_right[6]
             self.frame_animation += 0.5
             self.side = 'right'
 
@@ -311,9 +303,6 @@ class Enemy(GameSprite):
     
 def render_text(text, f, x=False, y=False):
     text_surface = f.render(text, True, (255,255,255))
-    text_rect = text_surface.get_rect()
-    mouse_x, mouse_y = pg.mouse.get_pos()
-    click = pg.mouse.get_pressed()
     if not x and not y:
         screen.blit(text_surface, (W//2-f.size(text)[0]/2, H//2-f.size(text)[1]/2))            
     elif not x:
@@ -322,26 +311,17 @@ def render_text(text, f, x=False, y=False):
         screen.blit(text_surface, (x, H//2-f.size(text)[1]/2))           
     elif x and y:
         screen.blit(text_surface, (x, y))
-    if text_rect.collidepoint(mouse_x, mouse_y) and click[0]:
-        print("click")
 
 total_level_w = len(level[0])*30
 total_level_h = len(level)*30
 
 sprites = pg.sprite.Group()
 camera = Camera(camera_configure, total_level_w, total_level_h)
-player = Player('assets/Characters/Hero/Swordsman_Idle/Swordsman0000.png', 90, 120, 60, 100)
-enemy = Enemy("image\enemy\enemy.png", 90, 120, 25, 50)
+player = Player('assets/Characters/Hero/Swordsman_Idle/Swordsman0000.png', 48, 48, 60, 100)
+enemy = Enemy("image\enemy\enemy.png", 90, 120, 39, 24)
 platforms = []
 sprites.add(player)
 sprites.add(enemy)
-
-# menu image
-image_menu = pg.transform.scale(pg.image.load("image/menu.png"), (800, 500))
-image_button_play = pg.transform.scale(pg.image.load("image/menu_play.jpg"), (100, 50))
-image_button_settings = pg.transform.scale(pg.image.load("image/menu_settings.jpg"), (100, 50))
-image_button_exit = pg.transform.scale(pg.image.load("image/menu_exit.jpg"), (100, 50))
-
 
 # level
 PLATFORM_WIDTH = PLATFORM_HEIGHT = 30
@@ -413,7 +393,7 @@ while True:
         if ev.type == pg.MOUSEBUTTONDOWN:
             mouse = pg.mouse.get_pos()
             print(mouse)
-    
+
     # draw background
     for i in background_images:
         screen.blit(i, (0, 0))
@@ -427,15 +407,14 @@ while True:
         render_text("ВЫЙТИ", font, False, H//2+100)
         if pg.mouse.get_pressed()[0]:
             x, y = pg.mouse.get_pos() 
-            if 440 <= x <= 555 and 195 <= y <= 225:
+            if 340 <= x <= 455 and 195 <= y <= 225:
                 location = 'game'
-            elif 400 <= x <= 595 and 285 <= y <= 315:
+            elif 300 <= x <= 495 and 285 <= y <= 315:
                 location = 'settings'
-            elif 440 <= x <= 555 and 400 <= y <= 425:
+            elif 340 <= x <= 455 and 400 <= y <= 425:
                 location = 'quit'
                 run = False
                 pg.quit()
-            print(location)
 
     if location == 'game':
         pg.mouse.set_visible(False)
